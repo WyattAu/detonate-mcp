@@ -1,0 +1,7 @@
+{
+  "include": ["src"],
+  "strict": ["src/detonate_mcp"],
+  "reportMissingImports": "error",
+  "reportUnusedImport": "error",
+  "reportUnusedVariable": "warning"
+}

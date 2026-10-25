@@ -6,12 +6,9 @@ on:
   pull_request:
 
 # Pinned by SHA per the estate's one-pin-per-action gate.
+# python-kit: locked uv install → ruff → pyright → pytest
 jobs:
   quality:
-    uses: WyattAu/engineering-standards/.github/workflows/rust-kit.yml@a1eb994babdbe1d94c1aef1858bd14ce0cd9b575
+    uses: WyattAu/engineering-standards/.github/workflows/python-kit.yml@94e8e9175a7be7cff20b538a3d7e0a48522175e7
     with:
-      tier: b
-      all-features: true
-      loom: false
-      wasm: false
-      miri: false
+      python-version: "3.13"
