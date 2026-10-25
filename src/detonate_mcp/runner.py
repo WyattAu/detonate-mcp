@@ -19,10 +19,13 @@ class RunResult:
     duration_s: float
 
     def to_dict(self) -> dict:
-        return {"exit_code": self.exit_code, "timed_out": self.timed_out,
-                "duration_s": round(self.duration_s, 2),
-                "stdout": core.cap_output(self.stdout),
-                "stderr": core.cap_output(self.stderr, core.MAX_OUTPUT_BYTES // 2)}
+        return {
+            "exit_code": self.exit_code,
+            "timed_out": self.timed_out,
+            "duration_s": round(self.duration_s, 2),
+            "stdout": core.cap_output(self.stdout),
+            "stderr": core.cap_output(self.stderr, core.MAX_OUTPUT_BYTES // 2),
+        }
 
 
 class DockerRunner:
@@ -30,11 +33,22 @@ class DockerRunner:
         argv = core.build_docker_argv(spec)
         t0 = time.monotonic()
         try:
-            proc = subprocess.run(argv, capture_output=True, text=True,
-                                  timeout=spec.timeout_s, errors="replace")
+            proc = subprocess.run(
+                argv, capture_output=True, text=True, timeout=spec.timeout_s, errors="replace"
+            )
         except subprocess.TimeoutExpired as e:
-            out = e.stdout.decode(errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
-            return RunResult(None, out, f"timed out after {spec.timeout_s}s",
-                             True, round(time.monotonic() - t0, 2))
-        return RunResult(proc.returncode, proc.stdout, proc.stderr, False,
-                         round(time.monotonic() - t0, 2))
+            out = (
+                e.stdout.decode(errors="replace")
+                if isinstance(e.stdout, bytes)
+                else (e.stdout or "")
+            )
+            return RunResult(
+                None,
+                out,
+                f"timed out after {spec.timeout_s}s",
+                True,
+                round(time.monotonic() - t0, 2),
+            )
+        return RunResult(
+            proc.returncode, proc.stdout, proc.stderr, False, round(time.monotonic() - t0, 2)
+        )

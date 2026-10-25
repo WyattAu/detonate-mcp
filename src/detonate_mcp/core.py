@@ -31,15 +31,23 @@ MAX_TIMEOUT_S = 600
 MAX_OUTPUT_BYTES = 200_000
 
 CONTAINER_FLAGS: list[str] = [
-    "--network", "none",
+    "--network",
+    "none",
     "--read-only",
-    "--tmpfs", "/tmp:rw,exec,size=64m,uid=1000",
-    "--cap-drop", "ALL",
-    "--security-opt", "no-new-privileges",
-    "--user", CONTAINER_USER,
-    "--cpus", "1",
-    "--memory", "512m",
-    "--pids-limit", "64",
+    "--tmpfs",
+    "/tmp:rw,exec,size=64m,uid=1000",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+    "--user",
+    CONTAINER_USER,
+    "--cpus",
+    "1",
+    "--memory",
+    "512m",
+    "--pids-limit",
+    "64",
 ]
 
 THREAT_MODEL = {
@@ -84,11 +92,12 @@ def build_docker_argv(spec: RunSpec) -> list[str]:
     argv += ["-v", f"{spec.evidence_dir}:{EVIDENCE_MOUNT}"]
     argv += [CONTAINER_IMAGE]
     import shlex
+
     body = (
         f"cp {EVIDENCE_MOUNT}/sample {SAMPLE_IN_CONTAINER} && "
         f"chmod +x {SAMPLE_IN_CONTAINER} && "
-        f"{SAMPLE_IN_CONTAINER}" +
-        ("" if not spec.sample_args else " " + " ".join(shlex.quote(a) for a in spec.sample_args))
+        f"{SAMPLE_IN_CONTAINER}"
+        + ("" if not spec.sample_args else " " + " ".join(shlex.quote(a) for a in spec.sample_args))
     )
     argv += ["/bin/sh", "-c", body]
     return argv
@@ -98,7 +107,7 @@ def cap_output(text: str, max_bytes: int = MAX_OUTPUT_BYTES) -> str:
     if len(text.encode("utf-8", errors="replace")) <= max_bytes:
         return text
     cut = text[: max_bytes // 2]
-    tail = text[-(max_bytes // 2):]
+    tail = text[-(max_bytes // 2) :]
     return f"{cut}\n...[truncated {len(text)} bytes total]...\n{tail}"
 
 
