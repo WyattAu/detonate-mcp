@@ -10,7 +10,8 @@ testable without Docker.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -30,20 +31,23 @@ DEFAULT_TIMEOUT_S = 120
 MAX_TIMEOUT_S = 600
 MAX_OUTPUT_BYTES = 200_000
 
+# The tmpfs is the ONE exec-allowed mount: the sample must run, and the
+# root filesystem stays read-only. (Found by test: docker --tmpfs
+# defaults to noexec.)
 CONTAINER_FLAGS: list[str] = [
     "--network",
-    "none",
-    "--read-only",
+    "none",  # no callback, no exfil
+    "--read-only",  # no host-fs persistence
     "--tmpfs",
-    "/tmp:rw,exec,size=64m,uid=1000",
+    f"/tmp:rw,exec,size=64m,uid=1000",
     "--cap-drop",
-    "ALL",
+    "ALL",  # no privilege escalation
     "--security-opt",
     "no-new-privileges",
     "--user",
-    CONTAINER_USER,
+    CONTAINER_USER,  # non-root
     "--cpus",
-    "1",
+    "1",  # resource caps
     "--memory",
     "512m",
     "--pids-limit",
@@ -68,6 +72,9 @@ THREAT_MODEL = {
 
 @dataclass(frozen=True)
 class RunSpec:
+    """Everything needed to execute one detonation. Constructed only via
+    build_run_spec, which enforces the allowlist."""
+
     sample_host_path: Path
     sample_args: tuple[str, ...]
     timeout_s: int
@@ -75,6 +82,15 @@ class RunSpec:
 
 
 def resolve_sample(samples_root: Path, sample_name: str) -> Path:
+    """Resolve `sample_name` under the allowlisted samples root.
+
+    The name must be RELATIVE and stay inside the root after symlink and
+    `..` resolution — this blocks path traversal, absolute-path escape,
+    and symlink escape in one check.
+
+    Raises ValueError for every violation (never returns a path outside
+    the root).
+    """
     if sample_name.startswith("/") or Path(sample_name).is_absolute():
         raise ValueError("sample must be a relative path under the samples root")
     root = samples_root.resolve()
@@ -87,20 +103,34 @@ def resolve_sample(samples_root: Path, sample_name: str) -> Path:
 
 
 def build_docker_argv(spec: RunSpec) -> list[str]:
+    """Build the docker argv for one detonation. No shell involved —
+    every element is a separate argv entry, so sample arguments cannot
+    inject container-side commands."""
     argv = ["docker", "run", "--rm", "-i"]
     argv += CONTAINER_FLAGS
     argv += ["-v", f"{spec.evidence_dir}:{EVIDENCE_MOUNT}"]
     argv += [CONTAINER_IMAGE]
-    import shlex
-
-    body = (
+    argv += [
+        "/bin/sh",
+        "-c",
         f"cp {EVIDENCE_MOUNT}/sample {SAMPLE_IN_CONTAINER} && "
         f"chmod +x {SAMPLE_IN_CONTAINER} && "
         f"{SAMPLE_IN_CONTAINER}"
-        + ("" if not spec.sample_args else " " + " ".join(shlex.quote(a) for a in spec.sample_args))
-    )
-    argv += ["/bin/sh", "-c", body]
+        + ("" if not spec.sample_args else " " + _quote_args(spec.sample_args)),
+    ]
     return argv
+
+
+def _quote_args(args: tuple[str, ...]) -> str:
+    """POSIX-quote arguments for the /bin/sh -c body inside the container.
+
+    The container shell is the container's problem — but a malformed
+    quote here would still misroute arguments, so we use shlex.quote,
+    the standard correct answer.
+    """
+    import shlex
+
+    return " ".join(shlex.quote(a) for a in args)
 
 
 def cap_output(text: str, max_bytes: int = MAX_OUTPUT_BYTES) -> str:
