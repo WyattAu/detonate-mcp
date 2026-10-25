@@ -16,4 +16,7 @@ build-backend = "hatchling.build"
 packages = ["src/detonate_mcp"]
 
 [tool.pytest.ini_options]
+
+[dependency-groups]
+dev = ["ruff>=0.8", "pytest>=8", "pyright>=1.1"]
 testpaths = ["tests"]
