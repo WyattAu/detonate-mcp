@@ -14,7 +14,7 @@ away by tool arguments.
 
 ## Why MCP (and not just bash)
 
-The estate's pentest toolkit runs nmap/sqlmap/etc via shell — those are
+The estate's pentest toolkit runs nmap/sqlmap/etc via shell; those are
 one-shot CLIs. This server is different because it needs to hold STATE:
 the allowlisted samples root, the evidence directory chain, the
 containment profile. An MCP server with typed tools makes that state
@@ -28,7 +28,7 @@ privilege escalation, resource exhaustion.
 It does NOT defend against: kernel exploits (docker shares the host
 kernel). For kernel-exploit-grade samples, detonate in a disposable VM.
 
-The tmpfs is the ONE exec-allowed mount — the sample must run, and that
+The tmpfs is the ONE exec-allowed mount; the sample must run, and that
 is the single deliberate exception to the read-only root.
 
 ## Architecture
@@ -39,7 +39,7 @@ detonate-mcp/
 │   ├── __init__.py
 │   ├── core.py         pure: profile constants, RunSpec, argv builder
 │   ├── runner.py       DockerRunner: subprocess.run, timeout enforcement
-│   ├── server.py       FastMCP tools (thin — delegate to core+runner)
+│   ├── server.py       FastMCP tools (thin; delegate to core+runner)
 │   ├── jsonc.py        JSONC comment stripping for config parsing
 │   ├── config.py       opencode.jsonc declaration probe
 │   ├── backend.py      backend resolution probe
